@@ -1,0 +1,8 @@
+{
+  "name": "ui-mockup",
+  "description": "Modern app/web UI mockup",
+  "prefix": "Modern UI design mockup. Clean interface, proper spacing, readable typography. Follows current design system conventions. Light mode",
+  "suffix": "White or light gray background. Professional product design quality. Pixel-perfect alignment",
+  "aspectRatio": "9:16",
+  "imageSize": "2K"
+}

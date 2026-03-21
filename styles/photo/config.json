@@ -1,0 +1,8 @@
+{
+  "name": "photo",
+  "description": "Photorealistic, high detail",
+  "prefix": "Photorealistic, high resolution photograph. Natural lighting, shallow depth of field. Professional photography quality",
+  "suffix": "Sharp focus on subject. Natural colors. No artificial or CGI look",
+  "aspectRatio": "3:2",
+  "imageSize": "2K"
+}
