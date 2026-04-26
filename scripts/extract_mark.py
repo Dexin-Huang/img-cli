@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Threshold a PNG and vectorize to SVG using potrace.
-Used by `img extract-mark` after the gpt-image-2 extract step.
+Used by `img extract-mark` after the deterministic CV crop step.
 
 Usage: python extract_mark.py <input.png> <output.svg>
 """
