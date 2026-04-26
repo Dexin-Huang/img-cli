@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] — 2026-04-26
 
 ### Added
-- Initial private-repo structure: plug-and-play install via `npm install -g github:Dexin-Huang/img-cli`.
+- Initial release: plug-and-play install via `npm install -g github:Dexin-Huang/img-cli`.
 - `img init` — interactive secure setup for `OPENAI_API_KEY` (and optional `GEMINI_API_KEY`); seeds library, installs Claude Code skill, optionally bootstraps Python venv.
 - `img install --skills` / `--venv` — discrete subcommands for the parts `init` automates.
 - `img extract-mark <board>` — pipeline that extracts an isolated logo mark from a brand identity board and vectorizes to SVG via potrace.

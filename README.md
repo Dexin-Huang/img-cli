@@ -34,7 +34,6 @@ img viewer                            # starts localhost:3000 to review outputs
 ```
 
 That's it. Three commands. Output lands in `./output/` of whatever directory you ran `img` from.
-For the private GitHub repo, authenticate Git first on fresh machines (`gh auth login && gh auth setup-git`, or use SSH access).
 
 ## What it generates
 
