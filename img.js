@@ -390,7 +390,7 @@ async function installVenv() {
   const create = spawnPython(python, ['-m', 'venv', VENV_DIR], { stdio: 'inherit', windowsHide: true });
   if (create.status !== 0) throw new Error(`${formatPythonCommand(python)} -m venv failed (is venv available?)`);
   console.error('Installing pillow + potracer...');
-  const pip = spawnPython({ command: venvPython(), args: [] }, ['-m', 'pip', 'install', '--quiet', 'pillow', 'potracer'], { stdio: 'inherit', windowsHide: true });
+  const pip = spawnPython({ command: venvPython(), args: [] }, ['-m', 'pip', 'install', '--quiet', 'pillow', 'potracer', 'numpy', 'scipy'], { stdio: 'inherit', windowsHide: true });
   if (pip.status !== 0) throw new Error('pip install failed');
   console.error('✓ venv ready — extract-mark will use it automatically');
 }
@@ -564,54 +564,49 @@ async function extractMark(args) {
   if (!inputBoard) { console.error('Usage: img extract-mark <brand-board.png> [-o file.svg]'); process.exit(1); }
   if (!fs.existsSync(inputBoard)) { console.error(`Input not found: ${inputBoard}`); process.exit(1); }
 
-  const provider = await pickProvider(flags);
   const baseName = path.basename(inputBoard, path.extname(inputBoard));
   const outputSvg = flags.o || path.join(OUTPUT_DIR, `${baseName}-mark.svg`);
-  const outputPng = outputSvg.replace(/\.svg$/i, '.png');
+  const silhouettePng = outputSvg.replace(/\.svg$/i, '.png');
+  const colorPng = outputSvg.replace(/\.svg$/i, '-color.png');
   fs.mkdirSync(path.dirname(outputSvg), { recursive: true });
-
-  console.error('[1/3] Extracting mark from board via gpt-image-2...');
-  const extractPrompt = 'Look at this brand identity board. Extract ONLY the primary geometric logo mark — a single isolated geometric shape — and render it on a clean blank canvas. Requirements: a pure white square background covering the entire canvas. The mark is the only element on the canvas — no horizontal bars, no rectangular footers, no baselines, no other shapes anywhere. The mark is pure solid black, centered, occupying about 50 percent of the canvas with generous white space on all four sides equally. Vector-clean edges. No text, no wordmark, no decorations, no tile borders. Just one isolated black mark floating in pure white space.';
-
-  const result = await provider.call({
-    prompt: extractPrompt,
-    images: [inputBoard],
-    size: '1K', ratio: '1:1', quality: 'high',
-    apiKey: provider.apiKey, model: provider.model,
-  });
-  if (!result) { console.error('Extract step failed'); process.exit(1); }
-  fs.writeFileSync(outputPng, result);
 
   if (!fs.existsSync(venvPython())) {
     if (process.stdin.isTTY) {
-      console.error('extract-mark needs a Python venv with pillow + potracer (one-time setup).');
+      console.error('extract-mark needs a Python venv with pillow + potracer + scipy (one-time setup).');
       const ok = await promptYesNo('Set it up now? (Y/n) ', true);
       if (ok) { try { await installVenv(); } catch (err) { console.error(`venv setup failed — ${err.message}`); process.exit(1); } }
       else { console.error("Run 'img install --venv' when you're ready."); process.exit(1); }
+    } else {
+      console.error("extract-mark needs a Python venv. Run 'img install --venv'.");
+      process.exit(1);
     }
   }
 
-  console.error('[2/3] Thresholding bitmap...');
-  console.error('[3/3] Vectorizing with potrace...');
   const venvBin = venvPython();
   const python = fs.existsSync(venvBin) ? { command: venvBin, args: [] } : findPythonCommand();
-  const traceScript = path.join(__dirname, 'scripts', 'extract_mark.py');
-  if (!fs.existsSync(traceScript)) { console.error(`Missing trace script: ${traceScript}`); process.exit(1); }
-  if (!python) {
-    console.error('Python 3 not found on PATH.');
-    console.error("Hint: run 'img install --venv' to create the Python venv.");
+  if (!python) { console.error('Python 3 not found.'); process.exit(1); }
+
+  console.error('[1/2] CV: detecting canonical mark and rendering clean silhouette...');
+  const cropScript = path.join(__dirname, 'scripts', 'crop_mark.py');
+  if (!fs.existsSync(cropScript)) { console.error(`Missing crop script: ${cropScript}`); process.exit(1); }
+  const cropResult = spawnPython(python, [cropScript, inputBoard, silhouettePng, colorPng], { encoding: 'utf8', windowsHide: true });
+  if (cropResult.status !== 0) {
+    console.error('CV crop failed:', (cropResult.stderr || '').slice(0, 500));
     process.exit(1);
   }
 
-  const py = spawnPython(python, [traceScript, outputPng, outputSvg], { encoding: 'utf8', windowsHide: true });
+  console.error('[2/2] Vectorizing silhouette with potrace...');
+  const traceScript = path.join(__dirname, 'scripts', 'extract_mark.py');
+  if (!fs.existsSync(traceScript)) { console.error(`Missing trace script: ${traceScript}`); process.exit(1); }
+  const py = spawnPython(python, [traceScript, silhouettePng, outputSvg], { encoding: 'utf8', windowsHide: true });
   if (py.status !== 0) {
     console.error('Vectorization failed:', (py.stderr || '').slice(0, 500));
-    console.error("Hint: run 'img install --venv' to create the Python venv.");
     process.exit(1);
   }
 
   console.log(outputSvg);
-  console.error(`(also wrote isolated PNG to ${outputPng})`);
+  console.error(`(also wrote silhouette PNG to ${silhouettePng})`);
+  console.error(`(also wrote color crop to ${colorPng})`);
 }
 
 // ============================================================
