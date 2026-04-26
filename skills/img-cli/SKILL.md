@@ -46,16 +46,58 @@ If the user did not pass `--style`, infer one from natural-language hints:
 - Otherwise: write to `./output/gen-YYYY-MM-DDTHH-MM-SS.png` for generation and `./output/edit-YYYY-MM-DDTHH-MM-SS.png` for edits.
 - Output paths are relative to the cwd where `img` is invoked.
 
-## Brand board pattern (the high-leverage move)
+## Brand identity workflow (the high-leverage pipeline)
 
-For any brand identity work, prefer `--style brand-board` over single-logo generation. The brand board format generates a 16-tile cohesive identity system (logo lockups, wordmarks, app icons, posters, typography specimens, color palette, mockups) — far stronger than asking the model for a single isolated mark.
+When a user asks for a logo, brand identity, app icons, or any complete visual identity for a project, **do not generate a single logo directly** — model-generated isolated logos are competent-not-iconic. Instead, run the two-step brand pipeline. It generalizes to any brand, any industry.
 
-After generating a brand board, you can extract a clean isolated SVG mark from it:
+### Step 1 — Generate the brand identity board
+
+Compose a structured brief and pass it as the prompt to `--style brand-board`. The brief should cover these axes (don't skip any — each one anchors a different decision the model has to make):
+
+```
+Brand: <name> — <one-line description>.
+Personality: <3-5 adjectives>.
+Industry: <category>.
+Audience: <who uses it, what they care about>.
+Mood: <a sensory image: "morning light through a gym window", "candle-lit library evening">.
+Typography: <face character, with named exemplars: "geometric sans-serif (the spirit of Söhne, GT America)">.
+Shape language: <how the mark should feel — "sharp angular", "soft custom geometry", "single iconic gesture">.
+Color direction: <accent + neutral, with hex if known>.
+Visual elements: <what the supporting tiles should show — UI, photography, data viz, patterns>.
+Style keywords: <3-5 vibe descriptors>.
+Aesthetic references: <3-5 named brands/studios that anchor the canon>.
+```
+
+Then:
 
 ```bash
-img extract-mark output/brandboard-foo.png
-# → output/brandboard-foo-mark.png + output/brandboard-foo-mark.svg
+img generate "<the full brief above>" --style brand-board --quality high -o output/brandboard-<slug>.png
 ```
+
+This produces a 16-tile cohesive identity system at 2K resolution: hero poster, app icons at multiple scales, wordmark lockups, typography specimen, UI mockups, color palette, business card, t-shirt mockup, and one tile dedicated to the canonical mark isolated on white (labeled "PRIMARY MARK / VECTOR ASSET"). Cost: ~$0.30, runtime: ~2 min.
+
+### Step 2 — Extract the canonical mark + SVG
+
+```bash
+img extract-mark output/brandboard-<slug>.png -o output/<slug>-logo.svg
+# → output/<slug>-logo.png   (clean black silhouette, model-cleaned from the board)
+# → output/<slug>-logo.svg   (vector, traced via potrace from the silhouette)
+```
+
+The pipeline is two steps: model edit ("create a clean mark from this brand board") then potrace. The output PNG is monochrome black silhouette (potracer is single-color); the actual brand-color version of the mark lives inside the brand board itself (tile 02 PRIMARY MARK + every applied tile).
+
+### Step 3 — Use the assets
+
+- **SVG**: drop into Figma / inline into HTML. To recolor, change `fill="black"` to your brand color in the `<path>` element.
+- **PNG silhouette**: use as-is for monochrome contexts, or recolor in Pillow / any image editor.
+- **Colored mark**: open the brand board PNG, screenshot/crop tile 02 (always labeled `PRIMARY MARK / VECTOR ASSET`).
+- **Other applied forms** (app icon, t-shirt, business card): all visible as tiles in the brand board.
+
+### Failure modes to watch
+
+- **Safety filter false positive**: gpt-image-2 occasionally rejects benign brand-board edits with `safety_violations=[abuse]`. Retry once — almost always succeeds.
+- **Model picks wrong tile during extract**: if the brand board tile is busy or the canonical mark is hard to identify, the silhouette can come out wrong. Re-run extract-mark — different sample, often fixes it.
+- **Brief too vague**: outputs default to category averages. The named exemplars (Stripe, Strava, Aesop, Tracksmith, etc.) are what produce on-brand specifics. Always include 3-5 references.
 
 ## Composition primitives
 
