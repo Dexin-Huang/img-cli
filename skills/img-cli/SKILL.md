@@ -86,11 +86,22 @@ img extract-mark output/brandboard-<slug>.png -o output/<slug>-logo.svg
 
 The pipeline is two steps: model edit ("create a clean mark from this brand board") then potrace. The output PNG is monochrome black silhouette (potracer is single-color); the actual brand-color version of the mark lives inside the brand board itself (tile 02 PRIMARY MARK + every applied tile).
 
-### Step 3 — Use the assets
+### Step 3 — Bundle the complete asset set
 
-- **SVG**: drop into Figma / inline into HTML. To recolor, change `fill="black"` to your brand color in the `<path>` element.
+```bash
+img bundle output/brandboard-<slug>.png --color "#HEX" --name "BrandName"
+# → output/<slug>-brand.zip  (25 files, ~4 MB)
+```
+
+This composes the canonical mark into every standard surface your project needs and zips it: SVG (brand-color, mono-light, mono-dark variants), favicons (`.ico` + multi-size PNGs), `apple-touch-icon`, PWA icons (192/512 + maskable), iOS App Store 1024, Android Play Store 512, Windows `.ico`, macOS `.icns`, OG/Twitter/LinkedIn/GitHub social cards (composited locally with the brand color + name in real type), `site.webmanifest`, `palette.json`, `brand-guidelines.md`, plus the brand board itself.
+
+The bundle reads the brand board's sidecar JSON to auto-infer the brief, brand name, and primary color when possible. Override any of them via flags. Pure Pillow — zero API spend per bundle. Runtime ~5s.
+
+### Optional Step 4 — Use the assets
+
+- **SVG**: drop into Figma / inline into HTML. The bundle's `logo.svg` is already brand-colored.
 - **PNG silhouette**: use as-is for monochrome contexts, or recolor in Pillow / any image editor.
-- **Colored mark**: open the brand board PNG, screenshot/crop tile 02 (always labeled `PRIMARY MARK / VECTOR ASSET`).
+- **Colored mark**: also extractable from the brand board's tile 02 (`PRIMARY MARK / VECTOR ASSET`).
 - **Other applied forms** (app icon, t-shirt, business card): all visible as tiles in the brand board.
 
 ### Failure modes to watch

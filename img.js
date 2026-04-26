@@ -115,6 +115,7 @@ Commands:
   edit <image> <prompt> [flags]   Edit an image
   remove-bg <image> [-o file]     Remove background via chromakey
   extract-mark <board> [-o .svg]  Extract a logo mark from a brand board → PNG + SVG
+  bundle <board> [flags]          Build a complete brand asset ZIP (favicons, app icons, social cards)
   styles                          List style presets
   mods                            List prompt modifiers
   refs                            List named reference images
@@ -148,6 +149,7 @@ Output flags:
     case 'edit': return edit(rest);
     case 'remove-bg': return removeBg(rest);
     case 'extract-mark': return extractMark(rest);
+    case 'bundle': return runBundle(rest);
     case 'styles': return listStyles();
     case 'mods': return listMods();
     case 'refs': return listRefs();
@@ -603,6 +605,82 @@ async function extractMark(args) {
 
   console.log(outputSvg);
   console.error(`(also wrote PNG to ${outputPng})`);
+}
+
+// ============================================================
+// BUNDLE (brand board → ZIP of ready-to-ship assets)
+// ============================================================
+
+async function runBundle(args) {
+  const { positionals, flags } = parseArgs(args);
+  const inputBoard = positionals[0];
+  if (!inputBoard) { console.error('Usage: img bundle <brand-board.png> [--color #hex] [--ink #hex] [--paper #hex] [--name "..."]'); process.exit(1); }
+  if (!fs.existsSync(inputBoard)) { console.error(`Input not found: ${inputBoard}`); process.exit(1); }
+
+  const baseName = path.basename(inputBoard, path.extname(inputBoard));
+  const slug = baseName.replace(/^brandboard-/, '').replace(/-v\d+$/, '');
+  const outZip = flags.o || path.join(OUTPUT_DIR, `${slug}-brand.zip`);
+  fs.mkdirSync(path.dirname(outZip), { recursive: true });
+
+  // Read brand board sidecar for the brief / name / color hints
+  let brief = '';
+  let inferredName = '';
+  let inferredColor = '';
+  const sidecarPath = inputBoard.replace(/\.png$/i, '.json');
+  if (fs.existsSync(sidecarPath)) {
+    try {
+      const sc = JSON.parse(fs.readFileSync(sidecarPath, 'utf8'));
+      brief = sc.prompt || '';
+      const nameMatch = brief.match(/Brand:\s*([^\s—\-\n]+)/i);
+      if (nameMatch) inferredName = nameMatch[1];
+      const colorMatch = brief.match(/#[0-9A-Fa-f]{6}/);
+      if (colorMatch) inferredColor = colorMatch[0];
+    } catch (err) {
+      console.error(`Warning: could not read sidecar ${sidecarPath}: ${err.message}`);
+    }
+  }
+
+  const name = flags.name || inferredName || slug;
+  const color = flags.color || inferredColor || '#1F6F4E';
+  const ink = flags.ink || '#14140F';
+  const paper = flags.paper || '#F8F7F2';
+
+  // Make sure the silhouette + SVG exist; run extract-mark if not.
+  const silhouettePath = path.join(OUTPUT_DIR, `${slug}-logo.png`);
+  const svgPath = path.join(OUTPUT_DIR, `${slug}-logo.svg`);
+  if (!fs.existsSync(silhouettePath) || !fs.existsSync(svgPath)) {
+    console.error(`[1/2] No cached extraction — running extract-mark first...`);
+    const { spawnSync } = require('child_process');
+    const r = spawnSync(process.execPath, [path.join(__dirname, 'img.js'), 'extract-mark', inputBoard, '-o', svgPath], { stdio: 'inherit' });
+    if (r.status !== 0) { console.error('extract-mark failed'); process.exit(1); }
+  } else {
+    console.error(`[1/2] Reusing cached extraction at ${silhouettePath}`);
+  }
+
+  if (!fs.existsSync(venvPython())) {
+    console.error("Bundle needs the Python venv. Run 'img install --venv' first.");
+    process.exit(1);
+  }
+  const python = { command: venvPython(), args: [] };
+  const bundleScript = path.join(__dirname, 'scripts', 'bundle_brand.py');
+  if (!fs.existsSync(bundleScript)) { console.error(`Missing bundle script: ${bundleScript}`); process.exit(1); }
+
+  console.error(`[2/2] Bundling ${name} brand assets (color ${color})...`);
+  const r = spawnPython(python, [
+    bundleScript,
+    '--board', inputBoard,
+    '--silhouette', silhouettePath,
+    '--svg', svgPath,
+    '--color', color,
+    '--ink', ink,
+    '--paper', paper,
+    '--name', name,
+    '--brief', brief,
+    '--out', outZip,
+  ], { stdio: 'inherit' });
+  if (r.status !== 0) { console.error('Bundle failed'); process.exit(1); }
+
+  console.log(outZip);
 }
 
 // ============================================================
