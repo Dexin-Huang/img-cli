@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.svg" alt="img-cli" width="120">
+  <img src="assets/logo.png" alt="img-cli" width="140">
 </p>
 
 <h1 align="center">img-cli</h1>
