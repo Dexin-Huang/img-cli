@@ -28,12 +28,19 @@ The model is the executor, not the strategist. Most image-gen CLIs are thin wrap
 
 ```bash
 npm install -g github:Dexin-Huang/img-cli
-img init                              # one-time setup: API key + skill; optional venv
 img generate "a single matte ceramic bottle of hand wash" --style studio-luxury
+```
+
+That's it. Two commands. The first time you generate, `img` prompts inline for your `OPENAI_API_KEY` (hidden input, saved to `~/.img-cli/.env`) — no separate setup step. Output lands in `./output/` of whatever directory you ran `img` from.
+
+Optional follow-ups, run only when you actually need them:
+
+```bash
+img install --skills                  # register the Claude Code skill (so /image works)
 img viewer                            # starts localhost:3000 to review outputs
 ```
 
-That's it. Three commands. Output lands in `./output/` of whatever directory you ran `img` from.
+Or run `img init` once if you'd rather set everything up upfront in a single guided pass instead of lazy-on-first-use.
 
 ## What it generates
 

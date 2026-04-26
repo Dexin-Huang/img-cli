@@ -30,6 +30,11 @@ for (const candidate of [path.join(HOME_DIR, '.env'), path.join(__dirname, '.env
   break;
 }
 
+// First-run library seeding (installed mode only, silent).
+if (!DEV_MODE && !fs.existsSync(STYLES_DIR)) {
+  try { seedLibrarySilent(); } catch (err) { console.error(`Warning: library seed failed — ${err.message}`); }
+}
+
 function venvPython() {
   return path.join(VENV_DIR, process.platform === 'win32' ? 'Scripts' : 'bin', process.platform === 'win32' ? 'python.exe' : 'python');
 }
@@ -153,15 +158,40 @@ Output flags:
   }
 }
 
-function pickProvider(flags) {
+const KEY_HINTS = {
+  OPENAI_API_KEY: 'Get one at: https://platform.openai.com/api-keys',
+  GEMINI_API_KEY: 'Get one at: https://aistudio.google.com/apikey',
+};
+
+async function pickProvider(flags) {
   const name = flags.provider || DEFAULT_PROVIDER;
   const provider = PROVIDERS[name];
   if (!provider) { console.error(`Unknown provider "${name}". Use openai or gemini.`); process.exit(1); }
   if (!process.env[provider.keyEnv]) {
-    console.error(`Missing ${provider.keyEnv}. Run 'img init' to set it up.`);
-    process.exit(1);
+    if (!process.stdin.isTTY) {
+      console.error(`Missing ${provider.keyEnv}. Run 'img init' or set the env var.`);
+      process.exit(1);
+    }
+    const key = await promptAndSaveKey(provider.keyEnv);
+    if (!key) { console.error('Aborted.'); process.exit(1); }
+    process.env[provider.keyEnv] = key;
   }
   return { name, ...provider, apiKey: process.env[provider.keyEnv] };
+}
+
+async function promptAndSaveKey(keyEnv) {
+  const envDir = DEV_MODE ? __dirname : HOME_DIR;
+  fs.mkdirSync(envDir, { recursive: true });
+  const envPath = path.join(envDir, '.env');
+  console.error(`img — first-time use of ${keyEnv}`);
+  if (KEY_HINTS[keyEnv]) console.error(KEY_HINTS[keyEnv]);
+  const key = await promptSecret(`  ${keyEnv} (input hidden): `);
+  if (!key) return null;
+  const existing = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+  fs.writeFileSync(envPath, appendEnvLine(existing, keyEnv, key), { mode: 0o600 });
+  console.error(`  ✓ saved to ${envPath}`);
+  console.error('');
+  return key;
 }
 
 // ============================================================
@@ -296,7 +326,7 @@ function promptSecret(label) {
   });
 }
 
-function seedLibrary() {
+function seedLibrary(silent) {
   fs.mkdirSync(LIBRARY_DIR, { recursive: true });
   for (const sub of ['styles', 'mods', 'refs']) {
     const src = path.join(SEED_LIBRARY_DIR, sub);
@@ -304,9 +334,11 @@ function seedLibrary() {
     fs.mkdirSync(dest, { recursive: true });
     if (!fs.existsSync(src)) continue;
     const copied = copyDirMissing(src, dest);
-    if (copied) console.error(`Seeded ${sub}/ → ${dest} (${copied} new file${copied === 1 ? '' : 's'})`);
+    if (copied && !silent) console.error(`Seeded ${sub}/ → ${dest} (${copied} new file${copied === 1 ? '' : 's'})`);
   }
 }
+
+function seedLibrarySilent() { seedLibrary(true); }
 
 function copyDirMissing(src, dest) {
   let copied = 0;
@@ -394,7 +426,7 @@ async function generate(args) {
   const userPrompt = positionals.join(' ');
   if (!userPrompt) { console.error('Usage: img generate "description" [--style S] [--mod M] [--ref R] [--no PHRASE]'); process.exit(1); }
 
-  const provider = pickProvider(flags);
+  const provider = await pickProvider(flags);
   const output = flags.o || autoOutput('gen');
   const quality = flags.quality || 'high';
 
@@ -441,7 +473,7 @@ async function edit(args) {
   const userPrompt = positionals.slice(1).join(' ');
   if (!imagePath || !userPrompt) { console.error('Usage: img edit <image> "instruction" [--mod M] [--no PHRASE]'); process.exit(1); }
 
-  const provider = pickProvider(flags);
+  const provider = await pickProvider(flags);
   const output = flags.o || autoOutput('edit');
   const quality = flags.quality || 'high';
 
@@ -486,7 +518,7 @@ async function removeBg(args) {
   const imagePath = positionals[0];
   if (!imagePath) { console.error('Usage: img remove-bg <image>'); process.exit(1); }
 
-  const provider = pickProvider(flags);
+  const provider = await pickProvider(flags);
   const output = flags.o || autoOutput('nobg');
 
   console.error(`[${provider.name}] Step 1: Generating green-screen version...`);
@@ -532,7 +564,7 @@ async function extractMark(args) {
   if (!inputBoard) { console.error('Usage: img extract-mark <brand-board.png> [-o file.svg]'); process.exit(1); }
   if (!fs.existsSync(inputBoard)) { console.error(`Input not found: ${inputBoard}`); process.exit(1); }
 
-  const provider = pickProvider(flags);
+  const provider = await pickProvider(flags);
   const baseName = path.basename(inputBoard, path.extname(inputBoard));
   const outputSvg = flags.o || path.join(OUTPUT_DIR, `${baseName}-mark.svg`);
   const outputPng = outputSvg.replace(/\.svg$/i, '.png');
@@ -549,6 +581,15 @@ async function extractMark(args) {
   });
   if (!result) { console.error('Extract step failed'); process.exit(1); }
   fs.writeFileSync(outputPng, result);
+
+  if (!fs.existsSync(venvPython())) {
+    if (process.stdin.isTTY) {
+      console.error('extract-mark needs a Python venv with pillow + potracer (one-time setup).');
+      const ok = await promptYesNo('Set it up now? (Y/n) ', true);
+      if (ok) { try { await installVenv(); } catch (err) { console.error(`venv setup failed — ${err.message}`); process.exit(1); } }
+      else { console.error("Run 'img install --venv' when you're ready."); process.exit(1); }
+    }
+  }
 
   console.error('[2/3] Thresholding bitmap...');
   console.error('[3/3] Vectorizing with potrace...');
