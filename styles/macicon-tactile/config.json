@@ -1,0 +1,10 @@
+{
+  "name": "macicon-tactile",
+  "description": "Tactile macOS app icon in the Apple Design Award canon (Things, Bear, Tot, Craft) — pillowy materials, soft 3D, niche use case",
+  "prefix": "macOS/iOS app icon in the Apple Design Award canon — the visual language of Things 3 by Cultured Code, Bear by Shiny Frog, Tot by Iconfactory, Craft by Luki Labs, Linear, and Arc by The Browser Company. The icon IS the squircle — the subject fills the squircle frame as its primary geometry, painted edge-to-edge. Not a small object floating on a background; not an icon nested inside another icon. Distill the concept to a single iconic gesture, not a literal depiction. One bold accent color popping against a restrained warm neutral background. Materials are matte and tactile — paper, ink, fabric, ceramic, wood, painted metal, soft felt — never glossy plastic, never liquid, never glass. Depth comes from one soft diffuse shadow inside the icon and gentle ambient occlusion — never harsh, never purely flat, never with rim light or inner highlights. Reads instantly at 16px and remains beautiful at 1024px",
+  "suffix": "Centered composition, 1:1 square, single icon as the only subject, generous breathing room, plain backdrop. Made for the Home Screen of a tasteful person",
+  "aspectRatio": "1:1",
+  "imageSize": "1K",
+  "refs": ["canon-appicon-paper", "canon-appicon-vinyl"],
+  "no": ["text", "lettering", "wordmarks", "letters in the icon", "UI chrome", "app screenshots", "multiple objects", "harsh shadows", "drop shadow halo", "busy background", "photorealistic clutter", "brand logo", "icon nested inside another icon", "small object floating on a background", "stacked squircles", "monochrome palette", "glossy 3D render", "Photoshop layer style", "rim lighting on the icon", "inner highlights", "fake refraction", "candy gloss", "plastic bevel", "liquid transparency effect", "polished chrome surface", "stock 3D icon look"]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "brand-board",
+  "description": "Brand identity showcase board — multi-tile modular grid presenting one cohesive identity system. The dominant pattern for branding work; plays to gpt-image-2's strength at composing dense cohesive layouts rather than isolated marks.",
+  "prefix": "Create a square high-end brand identity showcase board for the following brand:",
+  "suffix": "Design a polished modular grid of multiple tiles, each showing a different application of one cohesive visual identity system. Include a variety of brand assets: logo explorations (multiple lockups of a single iconic mark), wordmark variations, app icon at multiple sizes, editorial posters, product cards, landing page hero fragment, typography specimens, terminal output mockup or interface snippet, color palette presentation with hex codes, sticker concepts, business card mockup, t-shirt or laptop sticker mockup. Every tile should feel different in format and purpose, but all should clearly belong to the same brand world. The mark should be the same shape across every tile that shows it. Composition: square format, tightly arranged 4-column modular grid, multiple distinct tiles, dense but elegant layout, clean spacing, sharp alignment, strong typographic hierarchy. The final result should feel original, professionally composed, and extremely polished — like a real branding case study from a top studio (think COLLINS, Pentagram, Order, Bielke&Yang), not generic AI graphics. Output: square canvas, crisp at any zoom, premium presentation quality, cohesive identity system across every tile.",
+  "aspectRatio": "1:1",
+  "imageSize": "2K",
+  "refs": [],
+  "no": [
+    "generic AI graphics",
+    "low-resolution tiles",
+    "incoherent palette across tiles",
+    "different mark in different tiles",
+    "Lorem ipsum text",
+    "obvious template look",
+    "stock-photo people",
+    "watermarks",
+    "blurred or pixelated text"
+  ]
+}

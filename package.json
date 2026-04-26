@@ -1,0 +1,46 @@
+{
+  "name": "img-cli",
+  "version": "0.1.0",
+  "description": "Personal image-generation CLI built on gpt-image-2 — taste-forward style library, brand-board generation, mark extraction.",
+  "license": "MIT",
+  "author": "Dexin Huang <dh3172@columbia.edu>",
+  "type": "commonjs",
+  "bin": {
+    "img": "img.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "img.js",
+    "viewer.js",
+    "scripts/",
+    "skills/",
+    "styles/",
+    "mods/",
+    "refs/",
+    "assets/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    ".env.example"
+  ],
+  "scripts": {
+    "viewer": "node viewer.js",
+    "test:pack": "npm pack --dry-run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dexin-Huang/img-cli.git"
+  },
+  "keywords": [
+    "image",
+    "generation",
+    "cli",
+    "gpt-image-2",
+    "logo",
+    "brand-board",
+    "vector",
+    "svg"
+  ]
+}

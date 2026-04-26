@@ -1,0 +1,10 @@
+{
+  "name": "studio-luxury",
+  "description": "Quiet-luxury product still life — Aesop, COS, Hermès, Kinfolk",
+  "prefix": "Still life product photograph in the editorial canon of Aesop's catalogue, COS lookbooks, Hermès object photography, and Kinfolk magazine. Single subject centered with generous negative space. Soft directional daylight from one side — window light at mid-morning, never overhead, never artificial. Matte materials only: bone china, linen, raw paper, brushed metal, unglazed ceramic, putty plaster. Backdrop is bone-white seamless paper or a quiet warm putty wall. Composition is restrained, considered, patient — the photograph of a designed object made for a quiet luxury brand",
+  "suffix": "Photorealistic. Shot on 35mm, 50mm lens, f/4. Subtle film grain, faint tonal warmth, honest texture — visible weave on linen, micro-texture on ceramic, real shadow falloff. Single subject, plain backdrop, generous breathing room",
+  "aspectRatio": "3:2",
+  "imageSize": "2K",
+  "refs": [],
+  "no": ["stock photography", "glossy reflections", "plastic", "chrome", "dramatic lighting", "saturated colors", "vibrant colors", "multiple subjects", "busy background", "lifestyle clutter", "props", "text", "watermark", "brand logo"]
+}

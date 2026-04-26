@@ -1,0 +1,9 @@
+.env
+.env.local
+.venv/
+output/
+notes/
+.claude/
+.tmp_*
+*.log
+node_modules/
