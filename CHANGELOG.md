@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `img bundle <board>` — full brand asset ZIP from a brand board: SVG variants, favicons, app/PWA/store icons, social cards, webmanifest, palette, guidelines.
+- `img color-trace <image>` — flat icon art → crisp color-preserving SVG plus the full iOS/web raster icon set and zip. Auto-detects the palette (`--colors` to override), floods rounded corners full-bleed, traces each color as one smoothed potrace layer. Complements the silhouette-only `extract-mark`.
+- Skill: prompt gallery (`references/gallery-icons.md`) with four worked app-icon examples, and three composition rules (verbs-and-shapes, structure-then-goal, literal text in quotes).
+
+### Changed
+- `img install --venv` now provisions numpy + cairosvg alongside pillow + potracer, and upgrades existing venvs instead of skipping them.
+
 ## [0.1.0] — 2026-04-26
 
 ### Added
