@@ -114,7 +114,8 @@ Commands:
   generate <prompt> [flags]       Generate an image
   edit <image> <prompt> [flags]   Edit an image
   remove-bg <image> [-o file]     Remove background via chromakey
-  extract-mark <board> [-o .svg]  Extract a logo mark from a brand board → PNG + SVG
+  extract-mark <board> [-o .svg]  Extract a logo mark from a brand board → PNG + SVG (black silhouette)
+  color-trace <image> [flags]     Flat icon art → crisp color SVG + full icon set (PNGs, .ico, zip)
   bundle <board> [flags]          Build a complete brand asset ZIP (favicons, app icons, social cards)
   styles                          List style presets
   mods                            List prompt modifiers
@@ -149,6 +150,7 @@ Output flags:
     case 'edit': return edit(rest);
     case 'remove-bg': return removeBg(rest);
     case 'extract-mark': return extractMark(rest);
+    case 'color-trace': return colorTrace(rest);
     case 'bundle': return runBundle(rest);
     case 'styles': return listStyles();
     case 'mods': return listMods();
@@ -380,21 +382,21 @@ function installSkills() {
   console.error(`✓ Claude Code skill installed → ${skillDest}`);
 }
 
+const VENV_DEPS = ['pillow', 'potracer', 'numpy', 'cairosvg'];
+
 async function installVenv() {
   fs.mkdirSync(path.dirname(VENV_DIR), { recursive: true });
-  if (fs.existsSync(VENV_DIR)) {
-    console.error(`✓ venv already exists at ${VENV_DIR}`);
-    return;
+  if (!fs.existsSync(VENV_DIR)) {
+    const python = findPythonCommand();
+    if (!python) throw new Error('Python 3 not found on PATH (tried python3, python, and py -3 where available)');
+    console.error(`Creating venv at ${VENV_DIR}...`);
+    const create = spawnPython(python, ['-m', 'venv', VENV_DIR], { stdio: 'inherit', windowsHide: true });
+    if (create.status !== 0) throw new Error(`${formatPythonCommand(python)} -m venv failed (is venv available?)`);
   }
-  const python = findPythonCommand();
-  if (!python) throw new Error('Python 3 not found on PATH (tried python3, python, and py -3 where available)');
-  console.error(`Creating venv at ${VENV_DIR}...`);
-  const create = spawnPython(python, ['-m', 'venv', VENV_DIR], { stdio: 'inherit', windowsHide: true });
-  if (create.status !== 0) throw new Error(`${formatPythonCommand(python)} -m venv failed (is venv available?)`);
-  console.error('Installing pillow + potracer...');
-  const pip = spawnPython({ command: venvPython(), args: [] }, ['-m', 'pip', 'install', '--quiet', 'pillow', 'potracer'], { stdio: 'inherit', windowsHide: true });
+  console.error(`Installing ${VENV_DEPS.join(' + ')}...`);
+  const pip = spawnPython({ command: venvPython(), args: [] }, ['-m', 'pip', 'install', '--quiet', ...VENV_DEPS], { stdio: 'inherit', windowsHide: true });
   if (pip.status !== 0) throw new Error('pip install failed');
-  console.error('✓ venv ready — extract-mark will use it automatically');
+  console.error('✓ venv ready — extract-mark and color-trace will use it automatically');
 }
 
 function runViewer() {
@@ -605,6 +607,43 @@ async function extractMark(args) {
 
   console.log(outputSvg);
   console.error(`(also wrote PNG to ${outputPng})`);
+}
+
+// ============================================================
+// COLOR-TRACE (flat icon art → color SVG + icon set, pure local)
+// ============================================================
+
+async function colorTrace(args) {
+  const { positionals, flags } = parseArgs(args);
+  // parseArgs eats the token after a bare boolean flag; reclaim it
+  for (const key of ['no-flood', 'no-zip']) {
+    if (typeof flags[key] === 'string') { positionals.push(flags[key]); flags[key] = true; }
+  }
+  const input = positionals[0];
+  if (!input) {
+    console.error('Usage: img color-trace <image.png> [-o DIR] [--colors "#bg,#c2,.."] [--max-colors N] [--no-flood] [--no-zip]');
+    process.exit(1);
+  }
+  if (!fs.existsSync(input)) { console.error(`Input not found: ${input}`); process.exit(1); }
+
+  if (!fs.existsSync(venvPython()) && process.stdin.isTTY) {
+    console.error('color-trace needs a Python venv with pillow + numpy + potracer + cairosvg (one-time setup).');
+    const ok = await promptYesNo('Set it up now? (Y/n) ', true);
+    if (ok) { try { await installVenv(); } catch (err) { console.error(`venv setup failed — ${err.message}`); process.exit(1); } }
+  }
+  const venvBin = venvPython();
+  const python = fs.existsSync(venvBin) ? { command: venvBin, args: [] } : findPythonCommand();
+  if (!python) { console.error('Python 3 not found.'); process.exit(1); }
+
+  const scriptArgs = [path.join(__dirname, 'scripts', 'color_trace.py'), input];
+  if (flags.o) scriptArgs.push('-o', flags.o);
+  if (flags.colors) scriptArgs.push('--colors', String(flags.colors));
+  if (flags['max-colors']) scriptArgs.push('--max-colors', String(flags['max-colors']));
+  if (flags['no-flood']) scriptArgs.push('--no-flood');
+  if (flags['no-zip']) scriptArgs.push('--no-zip');
+
+  const py = spawnPython(python, scriptArgs, { stdio: 'inherit', windowsHide: true });
+  process.exit(py.status ?? 1);
 }
 
 // ============================================================

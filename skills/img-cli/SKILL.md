@@ -21,6 +21,7 @@ img generate "<prompt>" [--style S] [--mod M] [--ref R] [--no PHRASE] [--quality
 img edit <image> "<instruction>" [-o file]
 img remove-bg <image> [-o file]
 img extract-mark <brand-board.png> [-o file.svg]
+img color-trace <image.png> [-o DIR] [--colors "#bg,#c2,.."]
 img styles                # list available presets
 img mods                  # list prompt modifiers
 img refs                  # list named reference images
@@ -112,12 +113,36 @@ The bundle reads the brand board's sidecar JSON to auto-infer the brief, brand n
 
 ## Composition primitives
 
-Logos and marks benefit from the structured-brief format. Prompts should use **verbs and shapes** ("an arc that crosses the X-height"), not adjective stacks ("modern, clean, minimalist"). Adjectives produce category averages; verbs and shapes produce specifics.
+Three rules carry most of the quality:
+
+1. **Verbs and shapes, not adjective stacks.** "An arc that crosses the X-height" beats "modern, clean, minimalist." Adjectives produce category averages; verbs and shapes produce specifics. Logos and marks especially benefit from the structured-brief format.
+2. **Structure, then goal.** Order the prompt background → subject → details → constraints. Establish the scene and frame first, then the hero subject, then the fine details, then what to avoid. The model commits to early tokens, so lead with the composition you want, not the subject in isolation.
+3. **Literal text in straight quotes.** Any words that must appear in the image go in straight double-quotes — `a storefront sign reading "EBISU"`. Unquoted text gets paraphrased or garbled; quoted text is reproduced far more reliably. For dense or multi-line text, also pass `--quality high`.
 
 Stack additional primitives:
 - `--mod NAME` for modifiers (e.g. `--mod golden-hour`)
 - `--ref NAME|PATH` for visual reference anchors
 - `--no PHRASE` for negative constraints
+
+## Prompt gallery
+
+Worked examples — proven prompt → result pairs — live in `references/`, loaded on demand. Read the matching file before composing a prompt in that category; the examples encode what actually renders well rather than what sounds good.
+
+- `references/gallery-icons.md` — app icons and brand marks across stylistic directions
+
+## Color vector trace (crisp SVG from flat icon art)
+
+`img extract-mark` produces a **black silhouette** SVG only. When the user wants a color-preserving vector of flat icon/logo art (e.g. a generated app icon), use:
+
+```bash
+img color-trace <image.png> [-o DIR] [--colors "#bg,#c2,#c3"] [--max-colors N] [--no-flood] [--no-zip]
+```
+
+It auto-detects the palette (override with `--colors`, background first), floods rounded corners full-bleed, snaps pixels to the palette, traces each color as one smoothed potrace layer, and emits: a crisp layered color SVG, the full iOS/web raster icon set (App Store 1024 → favicon 16 + `.ico`), and a zip. Uses the same venv as extract-mark (`img install --venv`).
+
+Scope: **flat art only** (2-6 colors). Gradients are deliberately flattened — that's what makes it crisp. For painterly output, keep the raster PNG. Tiny accent colors (<1% of pixels) are merged into the nearest palette color by auto-detection — pass `--colors` explicitly when a small accent must survive.
+
+Do not swap the implementation to vtracer: its Python binding segfaults (Python 3.14) when passed any keyword argument. The worker script (`scripts/color_trace.py` in the img-cli repo) documents this and two other landmines (potracer's inverted foreground polarity, nonzero winding) — read it before modifying.
 
 ## Reviewing output
 
